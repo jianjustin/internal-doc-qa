@@ -2,15 +2,15 @@
 
 当前范围
 - 谁用：你自己本地跑，面试时可当场演示
-- 成功一笔：有出处才回答；原文已有答案时先说一句人话再挂出处；问句带房价可算超标；制度外拒绝
+- 成功一笔：有出处才回答；先说人话再挂出处；同一行里的邻居条款会切掉（问高铁不带出机票）；问句带房价可算超标；制度外拒绝
 - 这次不做：登录、向量库（持久化索引）、Agent 框架、多用户、接真实网盘
 
 怎么跑（需要 .venv，第一次会下载中文向量模型）
 
 uv venv --python 3.12 .venv
 uv pip install -r requirements.txt
+.venv/bin/python ask.py "一线住一晚再加高铁二等座怎么报"
 .venv/bin/python ask.py "一线城市住宿上限是多少"
-.venv/bin/python ask.py "如果住一晚468，超标那晚我自己要掏多少"
 .venv/bin/python ask.py "今年公司股价是多少"
 .venv/bin/python -m unittest -v test_ask.py
 

@@ -197,19 +197,33 @@ def collect_hits(query: str, chunks: list[Chunk]) -> list[tuple[float, Chunk]]:
     return out
 
 
-def excerpt(query: str, chunk: Chunk) -> str:
-    """一张卡里只留最像问句的那几行，邻居条款丢掉。"""
-    rows = [ln.strip() for ln in chunk.text.splitlines() if ln.strip()]
-    if len(rows) <= 1:
-        return chunk.text
-    scored = [(score(query, Chunk(chunk.path, chunk.heading, ln)), ln) for ln in rows]
-    best = max(s for s, _ in scored)
+def _best_units(query: str, chunk: Chunk, units: list[str]) -> list[str]:
+    if len(units) <= 1:
+        return units
+    scored = [(score(query, Chunk(chunk.path, chunk.heading, unit)), unit) for unit in units]
+    best = max(item[0] for item in scored)
     if best <= 0:
-        return chunk.text
-    kept = [ln for s, ln in scored if s >= best - 1e-12]
-    order = {ln: i for i, ln in enumerate(rows)}
-    kept.sort(key=lambda ln: order[ln])
-    return "\n".join(kept)
+        return units
+    kept = [unit for s, unit in scored if s >= best - 1e-12]
+    order = {unit: i for i, unit in enumerate(units)}
+    kept.sort(key=lambda unit: order[unit])
+    return kept
+
+
+def _sentences(text: str) -> list[str]:
+    parts = [part.strip() for part in re.split(r"(?<=[。；;])", text) if part.strip()]
+    return parts or [text]
+
+
+def excerpt(query: str, chunk: Chunk) -> str:
+    """一张卡里只留最像问句的那一行、那一句，邻居条款丢掉。"""
+    rows = [ln.strip() for ln in chunk.text.splitlines() if ln.strip()]
+    kept_lines = _best_units(query, chunk, rows)
+    trimmed: list[str] = []
+    for line in kept_lines:
+        sents = _best_units(query, chunk, _sentences(line))
+        trimmed.append("".join(sents))
+    return "\n".join(trimmed) if trimmed else chunk.text
 
 
 def asks_for_number(query: str) -> bool:
