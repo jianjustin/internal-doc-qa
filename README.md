@@ -10,6 +10,7 @@
 uv venv --python 3.12 .venv
 uv pip install -r requirements.txt
 .venv/bin/python ask.py "一线住一晚再加高铁二等座怎么报"
+.venv/bin/python ask.py "高铁超过 8 小时能不能改机票"
 .venv/bin/python ask.py "一线城市住宿上限是多少"
 .venv/bin/python ask.py "今年公司股价是多少"
 .venv/bin/python -m unittest -v test_ask.py
