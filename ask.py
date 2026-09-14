@@ -291,14 +291,15 @@ def asks_permission(query: str) -> bool:
 
 
 def permission_verdict(query: str, excerpts: list[str]) -> str | None:
-    """问能不能时，原文有禁止或须，就先下不能直接做的判断。"""
+    """问能不能时，原文有禁止或须，就判断不能直接做，并把条件说出来。"""
     if not asks_permission(query):
         return None
     blob = "\n".join(excerpts)
+    detail = spoken_from_excerpts(excerpts)
     if "禁止" in blob:
-        return "不能直接做。原文如下。"
+        return f"不能直接做。{detail}" if detail else "不能直接做。原文如下。"
     if "须" in blob or "必须" in blob:
-        return "不能直接做，须满足原文条件。"
+        return f"不能直接做，须满足：{detail}" if detail else "不能直接做，须满足原文条件。"
     return None
 
 

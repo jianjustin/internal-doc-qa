@@ -103,8 +103,8 @@ class AskTests(unittest.TestCase):
         text = answer("外包开 VPN 能下生产库吗", DOCS_DIR)
         spoken = text.splitlines()[1]
         self.assertIn("不能直接", spoken)
-        self.assertIn("工单", text)
-        self.assertIn("生产数据库", text)
+        self.assertIn("工单", spoken)
+        self.assertIn("报备", spoken)
         self.assertNotIn("拒绝", text)
 
 
