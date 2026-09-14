@@ -49,6 +49,13 @@ class AskTests(unittest.TestCase):
         self.assertNotIn("拒绝", text)
         self.assertNotIn("病假", text)
 
+    def test_one_clause_two_topics_cites_hotel_and_train(self):
+        text = answer("一线住一晚再加高铁二等座怎么报", DOCS_DIR)
+        self.assertIn("600", text)
+        self.assertIn("二等座", text)
+        self.assertNotIn("拒绝", text)
+        self.assertNotIn("病假", text)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -152,17 +152,48 @@ def question_parts(query: str) -> list[str]:
     return parts or [query]
 
 
+def _chunk_tokens(chunk: Chunk) -> set[str]:
+    return set(tokens(chunk.heading + " " + chunk.text))
+
+
+def leftover_tokens(query: str, hits: list[Chunk]) -> set[str]:
+    left = set(tokens(query))
+    for chunk in hits:
+        left -= _chunk_tokens(chunk)
+    return left
+
+
+def follow_up(query: str, chunks: list[Chunk], already: list[Chunk]) -> list[tuple[float, Chunk]]:
+    """已有原文没盖住的词，再查一次；盖不住的近邻段落丢掉。"""
+    leftover = leftover_tokens(query, already)
+    if not leftover:
+        return []
+    used = {(c.path, c.heading) for c in already}
+    rest = [c for c in chunks if (c.path, c.heading) not in used]
+    extra: list[tuple[float, Chunk]] = []
+    for s, c in retrieve(query, rest):
+        if leftover & _chunk_tokens(c):
+            extra.append((s, c))
+    return extra
+
+
 def collect_hits(query: str, chunks: list[Chunk]) -> list[tuple[float, Chunk]]:
-    """问了几件事就查几次；同一段不重复贴。"""
+    """问了几件事就查几次；同一段不重复贴。一段不够则按缺的词再查。"""
     seen: set[tuple[str, str]] = set()
     out: list[tuple[float, Chunk]] = []
-    for part in question_parts(query):
-        for s, c in retrieve(part, chunks):
+
+    def add(hits: list[tuple[float, Chunk]]) -> None:
+        for s, c in hits:
             key = (c.path, c.heading)
             if key in seen:
                 continue
             seen.add(key)
             out.append((s, c))
+
+    for part in question_parts(query):
+        first = retrieve(part, chunks)
+        add(first)
+        add(follow_up(part, chunks, [c for _, c in first]))
     return out
 
 
