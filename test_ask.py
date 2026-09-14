@@ -55,6 +55,9 @@ class AskTests(unittest.TestCase):
         self.assertIn("二等座", text)
         self.assertNotIn("拒绝", text)
         self.assertNotIn("病假", text)
+        self.assertNotIn("其他城市", text)
+        self.assertNotIn("市内交通", text)
+        self.assertNotIn("机票：经济舱", text)
 
 
 if __name__ == "__main__":

@@ -197,6 +197,21 @@ def collect_hits(query: str, chunks: list[Chunk]) -> list[tuple[float, Chunk]]:
     return out
 
 
+def excerpt(query: str, chunk: Chunk) -> str:
+    """一张卡里只留最像问句的那几行，邻居条款丢掉。"""
+    rows = [ln.strip() for ln in chunk.text.splitlines() if ln.strip()]
+    if len(rows) <= 1:
+        return chunk.text
+    scored = [(score(query, Chunk(chunk.path, chunk.heading, ln)), ln) for ln in rows]
+    best = max(s for s, _ in scored)
+    if best <= 0:
+        return chunk.text
+    kept = [ln for s, ln in scored if s >= best - 1e-12]
+    order = {ln: i for i, ln in enumerate(rows)}
+    kept.sort(key=lambda ln: order[ln])
+    return "\n".join(kept)
+
+
 def answer(query: str, docs_dir: Path = DOCS_DIR) -> str:
     if not docs_dir.is_dir():
         return "拒绝：找不到文档目录。"
@@ -207,7 +222,7 @@ def answer(query: str, docs_dir: Path = DOCS_DIR) -> str:
     lines = ["根据内部制度："]
     for s, chunk in hits:
         lines.append(f"- 出处：{chunk.path} / {chunk.heading}")
-        lines.append(f"  原文：{chunk.text}")
+        lines.append(f"  原文：{excerpt(query, chunk)}")
     lines.append("以上内容均来自检索到的原文，没有额外推断。")
     return "\n".join(lines)
 
