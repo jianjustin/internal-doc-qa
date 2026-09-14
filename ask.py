@@ -35,6 +35,23 @@ STOPWORDS = {
     "需要",
 }
 
+# 问法换成制度里的用词，才能撞上原文。只归一这一墙上会失败的说法。
+CANON = {
+    "酒店": "住宿",
+    "宾馆": "住宿",
+    "旅馆": "住宿",
+    "上海": "一线城市",
+    "北京": "一线城市",
+    "广州": "一线城市",
+    "深圳": "一线城市",
+    "北上广深": "一线城市",
+    "最多": "上限",
+    "限额": "上限",
+    "封顶": "上限",
+    "一晚": "晚",
+    "每晚": "晚",
+}
+
 
 @dataclass(frozen=True)
 class Chunk:
@@ -67,8 +84,15 @@ def load_chunks(docs_dir: Path) -> list[Chunk]:
     return [c for c in chunks if c.text]
 
 
+def canonicalize(text: str) -> str:
+    out = text
+    for src in sorted(CANON, key=len, reverse=True):
+        out = out.replace(src, CANON[src])
+    return out
+
+
 def tokens(text: str) -> list[str]:
-    parts = re.findall(r"[\u4e00-\u9fff]+|[a-zA-Z0-9]+", text.lower())
+    parts = re.findall(r"[\u4e00-\u9fff]+|[a-zA-Z0-9]+", canonicalize(text).lower())
     out: list[str] = []
     for part in parts:
         if re.fullmatch(r"[\u4e00-\u9fff]+", part) and len(part) >= 2:
@@ -79,19 +103,18 @@ def tokens(text: str) -> list[str]:
 
 
 def score(query: str, chunk: Chunk) -> float:
-    q = tokens(query)
+    q = set(tokens(query))
     if not q:
         return 0.0
-    blob = tokens(chunk.heading + " " + chunk.text)
+    blob = set(tokens(chunk.heading + " " + chunk.text))
     if not blob:
         return 0.0
-    hits = sum(blob.count(t) for t in q)
-    return hits / len(q)
+    return len(q & blob) / len(q)
 
 
 def retrieve(query: str, chunks: list[Chunk], k: int = 3) -> list[tuple[float, Chunk]]:
     ranked = sorted(((score(query, c), c) for c in chunks), key=lambda x: x[0], reverse=True)
-    return [(s, c) for s, c in ranked[:k] if s >= 0.6]
+    return [(s, c) for s, c in ranked[:k] if s >= 0.3]
 
 
 def answer(query: str, docs_dir: Path = DOCS_DIR) -> str:

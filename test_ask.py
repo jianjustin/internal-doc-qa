@@ -21,6 +21,12 @@ class AskTests(unittest.TestCase):
         self.assertIn("请假制度.md", text)
         self.assertIn("2 天", text)
 
+    def test_paraphrase_still_cites_hotel_cap(self):
+        text = answer("去上海出差宾馆一晚最多能报多少", DOCS_DIR)
+        self.assertIn("差旅报销制度.md", text)
+        self.assertIn("600", text)
+        self.assertNotIn("拒绝", text)
+
 
 if __name__ == "__main__":
     unittest.main()
