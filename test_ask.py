@@ -92,6 +92,13 @@ class AskTests(unittest.TestCase):
         self.assertNotIn("原文", spoken)
         self.assertIn("差旅报销制度.md", text)
 
+    def test_vpn_and_prod_db_cites_both_rules(self):
+        text = answer("外包开 VPN 能下生产库吗", DOCS_DIR)
+        self.assertIn("工单", text)
+        self.assertIn("生产数据库", text)
+        self.assertNotIn("拒绝", text)
+        self.assertNotIn("周会", text)
+
 
 if __name__ == "__main__":
     unittest.main()

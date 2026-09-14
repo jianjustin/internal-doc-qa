@@ -134,7 +134,7 @@ def _cosine(a, b) -> float:
     return dot / (na * nb)
 
 
-def retrieve(query: str, chunks: list[Chunk], k: int = 1) -> list[tuple[float, Chunk]]:
+def retrieve(query: str, chunks: list[Chunk], k: int = 1, sem_min: float | None = None) -> list[tuple[float, Chunk]]:
     ranked = sorted(((score(query, c), c) for c in chunks), key=lambda x: x[0], reverse=True)
     hits = [(s, c) for s, c in ranked[:k] if s >= 0.3]
     if hits:
@@ -144,7 +144,8 @@ def retrieve(query: str, chunks: list[Chunk], k: int = 1) -> list[tuple[float, C
     qv = next(model.embed([query]))
     cvs = list(model.embed([f"{c.heading}\n{c.text}" for c in chunks]))
     sem = sorted(((_cosine(qv, cv), c) for cv, c in zip(cvs, chunks)), key=lambda x: x[0], reverse=True)
-    return [(s, c) for s, c in sem[:k] if s >= SEM_THRESHOLD]
+    floor = SEM_THRESHOLD if sem_min is None else sem_min
+    return [(s, c) for s, c in sem[:k] if s >= floor]
 
 
 def question_parts(query: str) -> list[str]:
@@ -171,7 +172,7 @@ def follow_up(query: str, chunks: list[Chunk], already: list[Chunk]) -> list[tup
     used = {(c.path, c.heading) for c in already}
     rest = [c for c in chunks if (c.path, c.heading) not in used]
     extra: list[tuple[float, Chunk]] = []
-    for s, c in retrieve(query, rest):
+    for s, c in retrieve(query, rest, sem_min=0.52):
         if leftover & _chunk_tokens(c):
             extra.append((s, c))
     return extra
