@@ -134,7 +134,7 @@ def _cosine(a, b) -> float:
     return dot / (na * nb)
 
 
-def retrieve(query: str, chunks: list[Chunk], k: int = 3) -> list[tuple[float, Chunk]]:
+def retrieve(query: str, chunks: list[Chunk], k: int = 1) -> list[tuple[float, Chunk]]:
     ranked = sorted(((score(query, c), c) for c in chunks), key=lambda x: x[0], reverse=True)
     hits = [(s, c) for s, c in ranked[:k] if s >= 0.3]
     if hits:

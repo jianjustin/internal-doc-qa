@@ -33,6 +33,15 @@ class AskTests(unittest.TestCase):
         self.assertIn("600", text)
         self.assertNotIn("拒绝", text)
 
+    def test_leave_paraphrase_does_not_dump_other_leave_types(self):
+        text = answer("去年没休完的假明年还能留几天", DOCS_DIR)
+        self.assertIn("请假制度.md", text)
+        self.assertIn("年假", text)
+        self.assertIn("2 天", text)
+        self.assertNotIn("病假", text)
+        self.assertNotIn("事假", text)
+        self.assertNotIn("拒绝", text)
+
 
 if __name__ == "__main__":
     unittest.main()
