@@ -75,6 +75,15 @@ class AskTests(unittest.TestCase):
         self.assertNotIn("拒绝", text)
         self.assertNotIn("没写", text)
 
+    def test_speaks_cap_in_a_sentence_before_citation(self):
+        text = answer("一线城市住宿上限是多少", DOCS_DIR)
+        spoken = text.splitlines()[1]
+        self.assertIn("600", spoken)
+        self.assertIn("上限", spoken)
+        self.assertNotIn("出处", spoken)
+        self.assertNotIn("原文", spoken)
+        self.assertIn("差旅报销制度.md", text)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -271,6 +271,19 @@ def spoken_line(query: str, excerpts: list[str]) -> str | None:
     return None
 
 
+def spoken_from_excerpts(excerpts: list[str]) -> str:
+    """原文已有答案时，先说一句去掉条目符号的人话，再挂出处。"""
+    bits: list[str] = []
+    for piece in excerpts:
+        text = piece.lstrip("- ").strip()
+        text = re.sub(r"（[^）]*）", "", text)
+        text = text.replace("：", "")
+        text = re.sub(r"\s+", "", text)
+        if text:
+            bits.append(text)
+    return " ".join(bits)
+
+
 def answer(query: str, docs_dir: Path = DOCS_DIR) -> str:
     if not docs_dir.is_dir():
         return "拒绝：找不到文档目录。"
@@ -282,7 +295,7 @@ def answer(query: str, docs_dir: Path = DOCS_DIR) -> str:
     excerpts = [excerpt(query, chunk) for chunk in hit_chunks]
     lines = ["根据内部制度："]
     overage = overage_line(query, hit_chunks)
-    spoken = overage or spoken_line(query, excerpts)
+    spoken = overage or spoken_line(query, excerpts) or spoken_from_excerpts(excerpts)
     if spoken:
         lines.append(spoken)
     for chunk, piece in zip(hit_chunks, excerpts):
