@@ -108,5 +108,19 @@ class AskTests(unittest.TestCase):
         self.assertNotIn("拒绝", text)
 
 
+    def test_web_page_has_question_form(self):
+        from serve import PAGE
+        self.assertIn("<form", PAGE)
+        self.assertIn("question", PAGE)
+
+    def test_web_ask_uses_same_engine(self):
+        from serve import handle_ask
+        text = handle_ask("一线城市住宿上限是多少")
+        self.assertIn("600", text)
+        self.assertNotIn("拒绝", text)
+        refused = handle_ask("今年公司股价是多少")
+        self.assertTrue(refused.startswith("拒绝"))
+
+
 if __name__ == "__main__":
     unittest.main()
