@@ -212,6 +212,18 @@ def excerpt(query: str, chunk: Chunk) -> str:
     return "\n".join(kept)
 
 
+def asks_for_number(query: str) -> bool:
+    return any(word in query for word in ("多少", "几天", "几日", "几晚"))
+
+
+def spoken_line(query: str, excerpts: list[str]) -> str | None:
+    """问数字而原文没有数字时，明说没写，不编造。"""
+    blob = "\n".join(excerpts)
+    if asks_for_number(query) and not re.search(r"\d", blob):
+        return "制度没写具体金额或天数。"
+    return None
+
+
 def answer(query: str, docs_dir: Path = DOCS_DIR) -> str:
     if not docs_dir.is_dir():
         return "拒绝：找不到文档目录。"
@@ -219,10 +231,14 @@ def answer(query: str, docs_dir: Path = DOCS_DIR) -> str:
     hits = collect_hits(query, chunks)
     if not hits:
         return "拒绝：现有制度里没有找到可引用的原文，不能回答。"
+    excerpts = [excerpt(query, chunk) for _, chunk in hits]
     lines = ["根据内部制度："]
-    for s, chunk in hits:
+    spoken = spoken_line(query, excerpts)
+    if spoken:
+        lines.append(spoken)
+    for (_, chunk), piece in zip(hits, excerpts):
         lines.append(f"- 出处：{chunk.path} / {chunk.heading}")
-        lines.append(f"  原文：{excerpt(query, chunk)}")
+        lines.append(f"  原文：{piece}")
     lines.append("以上内容均来自检索到的原文，没有额外推断。")
     return "\n".join(lines)
 

@@ -59,6 +59,13 @@ class AskTests(unittest.TestCase):
         self.assertNotIn("市内交通", text)
         self.assertNotIn("机票：经济舱", text)
 
+    def test_says_amount_not_written_when_policy_has_no_number(self):
+        text = answer("超标那晚我自己要掏多少", DOCS_DIR)
+        self.assertIn("个人承担", text)
+        self.assertIn("没写", text)
+        self.assertNotIn("拒绝", text)
+        self.assertNotIn("600", text)
+
 
 if __name__ == "__main__":
     unittest.main()
