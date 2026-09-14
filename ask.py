@@ -112,9 +112,39 @@ def score(query: str, chunk: Chunk) -> float:
     return len(q & blob) / len(q)
 
 
+_EMBED_MODEL = None
+SEM_THRESHOLD = 0.55
+
+
+def _embedding_model():
+    global _EMBED_MODEL
+    if _EMBED_MODEL is None:
+        from fastembed import TextEmbedding
+
+        _EMBED_MODEL = TextEmbedding(model_name="BAAI/bge-small-zh-v1.5")
+    return _EMBED_MODEL
+
+
+def _cosine(a, b) -> float:
+    dot = float(sum(x * y for x, y in zip(a, b)))
+    na = float(sum(x * x for x in a) ** 0.5)
+    nb = float(sum(y * y for y in b) ** 0.5)
+    if na == 0 or nb == 0:
+        return 0.0
+    return dot / (na * nb)
+
+
 def retrieve(query: str, chunks: list[Chunk], k: int = 3) -> list[tuple[float, Chunk]]:
     ranked = sorted(((score(query, c), c) for c in chunks), key=lambda x: x[0], reverse=True)
-    return [(s, c) for s, c in ranked[:k] if s >= 0.3]
+    hits = [(s, c) for s, c in ranked[:k] if s >= 0.3]
+    if hits:
+        return hits
+    # 词对不上时比意思近不近。向量当场算，不是向量库。
+    model = _embedding_model()
+    qv = next(model.embed([query]))
+    cvs = list(model.embed([f"{c.heading}\n{c.text}" for c in chunks]))
+    sem = sorted(((_cosine(qv, cv), c) for cv, c in zip(cvs, chunks)), key=lambda x: x[0], reverse=True)
+    return [(s, c) for s, c in sem[:k] if s >= SEM_THRESHOLD]
 
 
 def answer(query: str, docs_dir: Path = DOCS_DIR) -> str:

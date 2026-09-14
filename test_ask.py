@@ -27,6 +27,12 @@ class AskTests(unittest.TestCase):
         self.assertIn("600", text)
         self.assertNotIn("拒绝", text)
 
+    def test_out_of_table_paraphrase_still_cites_hotel_cap(self):
+        text = answer("去魔都出差住旅店一晚顶格能花多少", DOCS_DIR)
+        self.assertIn("差旅报销制度.md", text)
+        self.assertIn("600", text)
+        self.assertNotIn("拒绝", text)
+
 
 if __name__ == "__main__":
     unittest.main()
