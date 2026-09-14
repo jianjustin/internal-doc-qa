@@ -216,6 +216,53 @@ def asks_for_number(query: str) -> bool:
     return any(word in query for word in ("多少", "几天", "几日", "几晚"))
 
 
+def query_price(query: str) -> int | None:
+    nums = re.findall(r"\d+", query)
+    if len(nums) != 1:
+        return None
+    return int(nums[0])
+
+
+def policy_caps(chunks: list[Chunk]) -> list[tuple[str, int]]:
+    caps: list[tuple[str, int]] = []
+    for chunk in chunks:
+        for ln in chunk.text.splitlines():
+            found = re.search(r"上限\s*(\d+)", ln)
+            if not found:
+                continue
+            if "一线" in ln or "北上广深" in ln:
+                caps.append(("一线", int(found.group(1))))
+            elif "其他" in ln:
+                caps.append(("其他", int(found.group(1))))
+    return caps
+
+
+def overage_line(query: str, hit_chunks: list[Chunk]) -> str | None:
+    """问句里有房价、制度里有上限时，按超标自付来算；没说城市就两条都算。"""
+    if "超标" not in query and "掏" not in query:
+        return None
+    price = query_price(query)
+    if price is None:
+        return None
+    caps = policy_caps(hit_chunks)
+    if not caps:
+        return None
+    if any(word in query for word in ("一线", "北上广深", "上海", "北京", "广州", "深圳", "魔都")):
+        caps = [item for item in caps if item[0] == "一线"] or caps
+    elif "其他" in query:
+        caps = [item for item in caps if item[0] == "其他"] or caps
+    parts: list[str] = []
+    for label, cap in caps:
+        pay = price - cap
+        if pay <= 0:
+            parts.append(f"{label}城市上限 {cap} 元，{price} 未超标，自己掏 0 元。")
+        else:
+            parts.append(f"{label}城市上限 {cap} 元，超标 {pay} 元，自己掏 {pay} 元。")
+    if len(caps) > 1:
+        parts.append("请说明城市后可以只留一条。")
+    return "".join(parts) if len(parts) == 1 else " ".join(parts)
+
+
 def spoken_line(query: str, excerpts: list[str]) -> str | None:
     """问数字而原文没有数字时，明说没写，不编造。"""
     blob = "\n".join(excerpts)
@@ -231,15 +278,20 @@ def answer(query: str, docs_dir: Path = DOCS_DIR) -> str:
     hits = collect_hits(query, chunks)
     if not hits:
         return "拒绝：现有制度里没有找到可引用的原文，不能回答。"
-    excerpts = [excerpt(query, chunk) for _, chunk in hits]
+    hit_chunks = [chunk for _, chunk in hits]
+    excerpts = [excerpt(query, chunk) for chunk in hit_chunks]
     lines = ["根据内部制度："]
-    spoken = spoken_line(query, excerpts)
+    overage = overage_line(query, hit_chunks)
+    spoken = overage or spoken_line(query, excerpts)
     if spoken:
         lines.append(spoken)
-    for (_, chunk), piece in zip(hits, excerpts):
+    for chunk, piece in zip(hit_chunks, excerpts):
         lines.append(f"- 出处：{chunk.path} / {chunk.heading}")
         lines.append(f"  原文：{piece}")
-    lines.append("以上内容均来自检索到的原文，没有额外推断。")
+    if overage:
+        lines.append("数字由问句中的房价与制度上限计算；未说明城市时两条都列出。")
+    else:
+        lines.append("以上内容均来自检索到的原文，没有额外推断。")
     return "\n".join(lines)
 
 

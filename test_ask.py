@@ -66,6 +66,15 @@ class AskTests(unittest.TestCase):
         self.assertNotIn("拒绝", text)
         self.assertNotIn("600", text)
 
+    def test_overage_with_night_price_uses_policy_caps(self):
+        text = answer("如果住一晚468，超标那晚我自己要掏多少", DOCS_DIR)
+        self.assertIn("个人承担", text)
+        self.assertIn("600", text)
+        self.assertIn("400", text)
+        self.assertIn("68", text)
+        self.assertNotIn("拒绝", text)
+        self.assertNotIn("没写", text)
+
 
 if __name__ == "__main__":
     unittest.main()
