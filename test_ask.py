@@ -99,6 +99,14 @@ class AskTests(unittest.TestCase):
         self.assertNotIn("拒绝", text)
         self.assertNotIn("周会", text)
 
+    def test_can_or_not_states_not_directly_allowed(self):
+        text = answer("外包开 VPN 能下生产库吗", DOCS_DIR)
+        spoken = text.splitlines()[1]
+        self.assertIn("不能直接", spoken)
+        self.assertIn("工单", text)
+        self.assertIn("生产数据库", text)
+        self.assertNotIn("拒绝", text)
+
 
 if __name__ == "__main__":
     unittest.main()

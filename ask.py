@@ -286,6 +286,22 @@ def spoken_line(query: str, excerpts: list[str]) -> str | None:
     return None
 
 
+def asks_permission(query: str) -> bool:
+    return any(word in query for word in ("能不能", "能否", "可以吗", "能下", "能开", "能直接"))
+
+
+def permission_verdict(query: str, excerpts: list[str]) -> str | None:
+    """问能不能时，原文有禁止或须，就先下不能直接做的判断。"""
+    if not asks_permission(query):
+        return None
+    blob = "\n".join(excerpts)
+    if "禁止" in blob:
+        return "不能直接做。原文如下。"
+    if "须" in blob or "必须" in blob:
+        return "不能直接做，须满足原文条件。"
+    return None
+
+
 def spoken_from_excerpts(excerpts: list[str]) -> str:
     """原文已有答案时，先说一句去掉条目符号的人话，再挂出处。"""
     bits: list[str] = []
@@ -310,7 +326,9 @@ def answer(query: str, docs_dir: Path = DOCS_DIR) -> str:
     excerpts = [excerpt(query, chunk) for chunk in hit_chunks]
     lines = ["根据内部制度："]
     overage = overage_line(query, hit_chunks)
-    spoken = overage or spoken_line(query, excerpts) or spoken_from_excerpts(excerpts)
+    missing_number = None if overage else spoken_line(query, excerpts)
+    verdict = None if (overage or missing_number) else permission_verdict(query, excerpts)
+    spoken = overage or missing_number or verdict or spoken_from_excerpts(excerpts)
     if spoken:
         lines.append(spoken)
     for chunk, piece in zip(hit_chunks, excerpts):
@@ -318,6 +336,8 @@ def answer(query: str, docs_dir: Path = DOCS_DIR) -> str:
         lines.append(f"  原文：{piece}")
     if overage:
         lines.append("数字由问句中的房价与制度上限计算；未说明城市时两条都列出。")
+    elif verdict:
+        lines.append("判断来自原文中的禁止或须，不是另行规定。")
     else:
         lines.append("以上内容均来自检索到的原文，没有额外推断。")
     return "\n".join(lines)
