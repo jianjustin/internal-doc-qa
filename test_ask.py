@@ -42,6 +42,13 @@ class AskTests(unittest.TestCase):
         self.assertNotIn("事假", text)
         self.assertNotIn("拒绝", text)
 
+    def test_two_part_question_cites_both_passages(self):
+        text = answer("实习生出差要谁批，回来几日内报销", DOCS_DIR)
+        self.assertIn("直属经理", text)
+        self.assertIn("10 个工作日", text)
+        self.assertNotIn("拒绝", text)
+        self.assertNotIn("病假", text)
+
 
 if __name__ == "__main__":
     unittest.main()

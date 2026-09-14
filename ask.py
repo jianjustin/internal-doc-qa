@@ -147,11 +147,30 @@ def retrieve(query: str, chunks: list[Chunk], k: int = 1) -> list[tuple[float, C
     return [(s, c) for s, c in sem[:k] if s >= SEM_THRESHOLD]
 
 
+def question_parts(query: str) -> list[str]:
+    parts = [p.strip() for p in re.split(r"[，,；;]", query) if p.strip()]
+    return parts or [query]
+
+
+def collect_hits(query: str, chunks: list[Chunk]) -> list[tuple[float, Chunk]]:
+    """问了几件事就查几次；同一段不重复贴。"""
+    seen: set[tuple[str, str]] = set()
+    out: list[tuple[float, Chunk]] = []
+    for part in question_parts(query):
+        for s, c in retrieve(part, chunks):
+            key = (c.path, c.heading)
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append((s, c))
+    return out
+
+
 def answer(query: str, docs_dir: Path = DOCS_DIR) -> str:
     if not docs_dir.is_dir():
         return "拒绝：找不到文档目录。"
     chunks = load_chunks(docs_dir)
-    hits = retrieve(query, chunks)
+    hits = collect_hits(query, chunks)
     if not hits:
         return "拒绝：现有制度里没有找到可引用的原文，不能回答。"
     lines = ["根据内部制度："]
